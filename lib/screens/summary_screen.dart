@@ -451,33 +451,42 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          child: ExpansionTile(
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  DateFormat('EEEE').format(date),
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '\$${total.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
             ),
-            children: dayExpenses
-                .map((expense) => ListTile(
-                      leading: Icon(_getCategoryIcon(expense.category)),
-                      title: Text(expense.name),
-                      trailing: Text('\$${expense.amount.toStringAsFixed(2)}'),
-                    ))
-                .toList(),
+            child: ExpansionTile(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    DateFormat('EEEE').format(date),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '\$${total.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              children: dayExpenses
+                  .map((expense) => ListTile(
+                        leading: Icon(_getCategoryIcon(expense.category)),
+                        title: Text(expense.name),
+                        trailing:
+                            Text('\$${expense.amount.toStringAsFixed(2)}'),
+                      ))
+                  .toList(),
+            ),
           ),
         );
       }).toList(),
@@ -488,14 +497,30 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
     // Group expenses by week of the month
     final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
+    final nextMonth = DateTime(now.year, now.month + 1, 1);
     final weeks = <Map<String, dynamic>>[];
 
+    // Find the first Monday of the month or the first day if it's already Monday
     var currentWeekStart = monthStart;
-    while (currentWeekStart.month == monthStart.month) {
+    if (monthStart.weekday != DateTime.monday) {
+      // If month doesn't start on Monday, use the previous Monday
+      currentWeekStart =
+          monthStart.subtract(Duration(days: monthStart.weekday - 1));
+    }
+
+    while (currentWeekStart.isBefore(nextMonth)) {
       final weekEnd = currentWeekStart.add(const Duration(days: 6));
-      final weekExpenses = expenses.where((e) =>
-          e.date.isAfter(currentWeekStart.subtract(const Duration(days: 1))) &&
-          e.date.isBefore(weekEnd.add(const Duration(days: 1))));
+
+      // Filter expenses for this week
+      final weekExpenses = expenses.where((e) {
+        final expenseDate = e.date;
+        return expenseDate
+                .isAfter(currentWeekStart.subtract(const Duration(days: 1))) &&
+            expenseDate.isBefore(weekEnd.add(const Duration(days: 1))) &&
+            expenseDate.month ==
+                now.month; // Only include expenses from current month
+      });
+
       final total = weekExpenses.fold(0.0, (sum, e) => sum + e.amount);
 
       weeks.add({
@@ -515,36 +540,58 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
         final start = week['start'] as DateTime;
         final end = week['end'] as DateTime;
 
+        // Format the date range to show only relevant dates
+        String dateRange;
+        if (start.month != now.month) {
+          dateRange =
+              '${DateFormat('MMM d').format(monthStart)} - ${DateFormat('MMM d').format(end)}';
+        } else if (end.month != now.month) {
+          final lastDayOfMonth = nextMonth.subtract(const Duration(days: 1));
+          dateRange =
+              '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d').format(lastDayOfMonth)}';
+        } else {
+          dateRange =
+              '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d').format(end)}';
+        }
+
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          child: ExpansionTile(
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
+            ),
+            child: ExpansionTile(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    dateRange,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '\$${total.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
               children: [
-                Text(
-                  '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d').format(end)}',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '\$${total.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                ...weekExpenses.map((expense) => ListTile(
+                      leading: Icon(_getCategoryIcon(expense.category)),
+                      title: Text(expense.name),
+                      subtitle: Text(DateFormat('MMM d').format(expense.date)),
+                      trailing: Text('\$${expense.amount.toStringAsFixed(2)}'),
+                    )),
               ],
             ),
-            children: [
-              ...weekExpenses.map((expense) => ListTile(
-                    leading: Icon(_getCategoryIcon(expense.category)),
-                    title: Text(expense.name),
-                    subtitle: Text(DateFormat('MMM d').format(expense.date)),
-                    trailing: Text('\$${expense.amount.toStringAsFixed(2)}'),
-                  )),
-            ],
           ),
         );
       }).toList(),

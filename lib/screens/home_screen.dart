@@ -52,7 +52,7 @@ class HomeScreen extends ConsumerWidget {
                 Icons.arrow_drop_down,
                 color: isDarkMode ? Colors.white : Colors.black87,
               ),
-              underline: Container(), // Remove the underline
+              underline: Container(),
               style: TextStyle(
                 color: isDarkMode ? Colors.white : Colors.black87,
                 fontSize: 16,
