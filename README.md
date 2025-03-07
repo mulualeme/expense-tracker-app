@@ -50,7 +50,7 @@ Expense Tracker is designed with simplicity and functionality in mind. It provid
 
 ## Screenshots
 
-![Daily Expense View](assets/images/image.png)
+![Daily Expense View](assets/image/image.png)
 _Daily expense tracking screen showing spending summary and transaction list in dark mode_
 
 ## Installation
