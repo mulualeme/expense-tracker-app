@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:expense_tracker/screens/home_screen.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:expense_tracker/screens/settings_screen.dart';
+import 'package:flutter/services.dart';
 
 // Create a provider to track theme changes
 final themeProvider = StateProvider<ThemeMode>((ref) {
@@ -30,14 +31,6 @@ void main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        // Initialize theme provider after boxes are opened
-        themeProvider.overrideWith((ref) {
-          final settingsBox = Hive.box('settings');
-          final isDarkMode = settingsBox.get('darkMode', defaultValue: false);
-          return isDarkMode ? ThemeMode.dark : ThemeMode.light;
-        }),
-      ],
       child: const MyApp(),
     ),
   );
@@ -53,6 +46,9 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
+      home: const DoubleTapToClose(
+        child: HomeScreen(),
+      ),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF000000),
@@ -96,11 +92,70 @@ class MyApp extends ConsumerWidget {
         ),
       ),
       themeMode: themeMode,
-      initialRoute: '/',
       routes: {
-        '/': (context) => const HomeScreen(),
         '/settings': (context) => const SettingsScreen(),
       },
+    );
+  }
+}
+
+class DoubleTapToClose extends StatefulWidget {
+  final Widget child;
+
+  const DoubleTapToClose({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  State<DoubleTapToClose> createState() => _DoubleTapToCloseState();
+}
+
+class _DoubleTapToCloseState extends State<DoubleTapToClose> {
+  DateTime? _lastTapTime;
+
+  Future<bool> _onWillPop() async {
+    final now = DateTime.now();
+    if (_lastTapTime == null ||
+        now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
+      _lastTapTime = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Center(
+            child: Text(
+              'Please press back again to exit',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          backgroundColor: Colors.grey[800],
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.symmetric(
+            horizontal: 50.0,
+            vertical: 16.0,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 12.0,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24.0),
+          ),
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: widget.child,
     );
   }
 }

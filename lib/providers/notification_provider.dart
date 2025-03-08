@@ -22,7 +22,7 @@ class NotificationNotifier extends StateNotifier<DateTime> {
 
   void _setupPeriodicCheck() {
     // Check every day at midnight
-    Future.delayed(Duration(minutes: 1), () async {
+    Future.delayed(const Duration(minutes: 1), () async {
       final now = DateTime.now();
 
       // Check for end of week (Sunday)

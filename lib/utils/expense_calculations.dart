@@ -225,4 +225,19 @@ class ExpenseCalculations {
 
     return dailyTotals;
   }
+
+  static bool isSamePeriod(DateTime date1, DateTime date2, String period) {
+    switch (period) {
+      case 'Daily':
+        return isSameDay(date1, date2);
+      case 'Weekly':
+        final start1 = date1.subtract(Duration(days: date1.weekday - 1));
+        final start2 = date2.subtract(Duration(days: date2.weekday - 1));
+        return isSameDay(start1, start2);
+      case 'Monthly':
+        return date1.month == date2.month && date1.year == date2.year;
+      default:
+        return false;
+    }
+  }
 }

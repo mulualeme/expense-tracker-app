@@ -9,11 +9,9 @@ class ExpenseBarChart extends ConsumerWidget {
   const ExpenseBarChart({super.key});
 
   String _getWeekLabel(DateTime date) {
-    // Get the month abbreviation
-    String month = DateFormat('MMM').format(date);
     // Get the week number (1-4)
     int weekOfMonth = ((date.day - 1) ~/ 7) + 1;
-    return '$month W$weekOfMonth';
+    return 'W$weekOfMonth';
   }
 
   String _getMonthLabel(DateTime date) {
@@ -22,6 +20,22 @@ class ExpenseBarChart extends ConsumerWidget {
 
   String _getDayLabel(DateTime date) {
     return DateFormat('E').format(date);
+  }
+
+  bool _isCurrentPeriod(DateTime date, String selectedPeriod) {
+    final now = DateTime.now();
+    switch (selectedPeriod) {
+      case 'Daily':
+        return ExpenseCalculations.isSameDay(date, now);
+      case 'Weekly':
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final dateStartOfWeek = date.subtract(Duration(days: date.weekday - 1));
+        return dateStartOfWeek.isAtSameMomentAs(startOfWeek);
+      case 'Monthly':
+        return date.month == now.month && date.year == now.year;
+      default:
+        return false;
+    }
   }
 
   @override
@@ -71,8 +85,10 @@ class ExpenseBarChart extends ConsumerWidget {
           }
 
           // Check if this bar is selected
-          final isSelected = selectedDate != null &&
-              ExpenseCalculations.isSameDay(date, selectedDate);
+          final isSelected = selectedDate == null
+              ? _isCurrentPeriod(date, selectedPeriod)
+              : ExpenseCalculations.isSamePeriod(
+                  date, selectedDate, selectedPeriod);
 
           return Expanded(
             child: GestureDetector(

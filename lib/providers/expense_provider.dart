@@ -18,10 +18,16 @@ class ExpenseNotifier extends StateNotifier<List<Expense>> {
   }
 
   void addExpense(Expense expense) {
+    final box = Hive.box<Expense>('expenses');
+    box.put(expense.id, expense);
+
     state = [...state, expense];
   }
 
   void updateExpense(Expense updatedExpense) {
+    final box = Hive.box<Expense>('expenses');
+    box.put(updatedExpense.id, updatedExpense);
+
     state = state.map((expense) {
       if (expense.id == updatedExpense.id) {
         return updatedExpense;
@@ -31,6 +37,9 @@ class ExpenseNotifier extends StateNotifier<List<Expense>> {
   }
 
   void deleteExpense(String id) {
+    final box = Hive.box<Expense>('expenses');
+    box.delete(id);
+
     state = state.where((expense) => expense.id != id).toList();
   }
 }

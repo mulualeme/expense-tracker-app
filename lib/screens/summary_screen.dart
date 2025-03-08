@@ -206,71 +206,188 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
     );
   }
 
+  Widget _buildReportSection(List<Expense> expenses, bool isDarkMode) {
+    if (_selectedReport == 'Weekly') {
+      return _buildWeeklyReport(expenses, isDarkMode);
+    } else {
+      return _buildMonthlyReport(expenses, isDarkMode);
+    }
+  }
+
+  Widget _buildWeeklyReport(List<Expense> expenses, bool isDarkMode) {
+    // Get expenses for each day of the current week
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    final weeklyData = List.generate(7, (index) {
+      final date = weekStart.add(Duration(days: index));
+      final dayExpenses = expenses.where((e) =>
+          e.date.year == date.year &&
+          e.date.month == date.month &&
+          e.date.day == date.day);
+      final total = dayExpenses.fold(0.0, (sum, e) => sum + e.amount);
+      return {
+        'date': date,
+        'total': total,
+        'expenses': dayExpenses.toList(),
+      };
+    });
+
+    return Column(
+      children: weeklyData.map((day) {
+        final date = day['date'] as DateTime;
+        final total = day['total'] as double;
+        final dayExpenses = day['expenses'] as List<Expense>;
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
+            ),
+            child: ExpansionTile(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    DateFormat('EEEE').format(date),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '\$${total.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              children: dayExpenses
+                  .map((expense) => ListTile(
+                        leading: Icon(_getCategoryIcon(expense.category)),
+                        title: Text(expense.name),
+                        trailing:
+                            Text('\$${expense.amount.toStringAsFixed(2)}'),
+                      ))
+                  .toList(),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildMonthlyReport(List<Expense> expenses, bool isDarkMode) {
+    // Get current month's info
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+    final nextMonth = DateTime(now.year, now.month + 1, 1);
+    final lastDayOfMonth = nextMonth.subtract(const Duration(days: 1));
+
+    // Define the week ranges
+    final weekRanges = [
+      {'start': 1, 'end': 7},
+      {'start': 8, 'end': 14},
+      {'start': 15, 'end': 21},
+      {'start': 22, 'end': lastDayOfMonth.day},
+    ];
+
+    return Column(
+      children: [
+        // Add month header
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: Text(
+            DateFormat('MMMM yyyy').format(now),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+        ...weekRanges.map((week) {
+          final weekStart = DateTime(now.year, now.month, week['start'] as int);
+          final weekEnd = DateTime(now.year, now.month, week['end'] as int);
+
+          // Filter expenses for this week
+          final weekExpenses = expenses.where((e) {
+            final expenseDate = e.date;
+            return expenseDate
+                    .isAfter(weekStart.subtract(const Duration(days: 1))) &&
+                expenseDate.isBefore(weekEnd.add(const Duration(days: 1))) &&
+                expenseDate.month == now.month;
+          }).toList();
+
+          // Sort expenses by date, newest first
+          weekExpenses.sort((a, b) => b.date.compareTo(a.date));
+
+          final total = weekExpenses.fold(0.0, (sum, e) => sum + e.amount);
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                dividerColor: Colors.transparent,
+              ),
+              child: ExpansionTile(
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Week ${week['start']}-${week['end']}',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '\$${total.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                children: [
+                  if (weekExpenses.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No expenses for this week'),
+                    )
+                  else
+                    ...weekExpenses.map((expense) => ListTile(
+                          leading: Icon(_getCategoryIcon(expense.category)),
+                          title: Text(expense.name),
+                          subtitle:
+                              Text(DateFormat('MMM d').format(expense.date)),
+                          trailing:
+                              Text('\$${expense.amount.toStringAsFixed(2)}'),
+                        )),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
-    );
-  }
-
-  Widget _buildPeriodCard(BuildContext context, String period, double amount,
-      IconData icon, bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
-        ),
-        boxShadow: isDarkMode
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.grey.shade200,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDarkMode ? Colors.grey.shade900 : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                period,
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey : Colors.grey.shade600,
-                  fontSize: 14,
-                ),
-              ),
-              Text(
-                '\$${amount.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -329,6 +446,65 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodCard(BuildContext context, String period, double amount,
+      IconData icon, bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
+        ),
+        boxShadow: isDarkMode
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.grey.shade200,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.grey.shade900 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                period,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey : Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                '\$${amount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -414,187 +590,6 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildReportSection(List<Expense> expenses, bool isDarkMode) {
-    if (_selectedReport == 'Weekly') {
-      return _buildWeeklyReport(expenses, isDarkMode);
-    } else {
-      return _buildMonthlyReport(expenses, isDarkMode);
-    }
-  }
-
-  Widget _buildWeeklyReport(List<Expense> expenses, bool isDarkMode) {
-    // Get expenses for each day of the current week
-    final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final weeklyData = List.generate(7, (index) {
-      final date = weekStart.add(Duration(days: index));
-      final dayExpenses = expenses.where((e) =>
-          e.date.year == date.year &&
-          e.date.month == date.month &&
-          e.date.day == date.day);
-      final total = dayExpenses.fold(0.0, (sum, e) => sum + e.amount);
-      return {
-        'date': date,
-        'total': total,
-        'expenses': dayExpenses.toList(),
-      };
-    });
-
-    return Column(
-      children: weeklyData.map((day) {
-        final date = day['date'] as DateTime;
-        final total = day['total'] as double;
-        final dayExpenses = day['expenses'] as List<Expense>;
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              dividerColor: Colors.transparent,
-            ),
-            child: ExpansionTile(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    DateFormat('EEEE').format(date),
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    '\$${total.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              children: dayExpenses
-                  .map((expense) => ListTile(
-                        leading: Icon(_getCategoryIcon(expense.category)),
-                        title: Text(expense.name),
-                        trailing:
-                            Text('\$${expense.amount.toStringAsFixed(2)}'),
-                      ))
-                  .toList(),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildMonthlyReport(List<Expense> expenses, bool isDarkMode) {
-    // Group expenses by week of the month
-    final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
-    final nextMonth = DateTime(now.year, now.month + 1, 1);
-    final weeks = <Map<String, dynamic>>[];
-
-    // Find the first Monday of the month or the first day if it's already Monday
-    var currentWeekStart = monthStart;
-    if (monthStart.weekday != DateTime.monday) {
-      // If month doesn't start on Monday, use the previous Monday
-      currentWeekStart =
-          monthStart.subtract(Duration(days: monthStart.weekday - 1));
-    }
-
-    while (currentWeekStart.isBefore(nextMonth)) {
-      final weekEnd = currentWeekStart.add(const Duration(days: 6));
-
-      // Filter expenses for this week
-      final weekExpenses = expenses.where((e) {
-        final expenseDate = e.date;
-        return expenseDate
-                .isAfter(currentWeekStart.subtract(const Duration(days: 1))) &&
-            expenseDate.isBefore(weekEnd.add(const Duration(days: 1))) &&
-            expenseDate.month ==
-                now.month; // Only include expenses from current month
-      });
-
-      final total = weekExpenses.fold(0.0, (sum, e) => sum + e.amount);
-
-      weeks.add({
-        'start': currentWeekStart,
-        'end': weekEnd,
-        'total': total,
-        'expenses': weekExpenses.toList(),
-      });
-
-      currentWeekStart = currentWeekStart.add(const Duration(days: 7));
-    }
-
-    return Column(
-      children: weeks.map((week) {
-        final weekExpenses = week['expenses'] as List<Expense>;
-        final total = week['total'] as double;
-        final start = week['start'] as DateTime;
-        final end = week['end'] as DateTime;
-
-        // Format the date range to show only relevant dates
-        String dateRange;
-        if (start.month != now.month) {
-          dateRange =
-              '${DateFormat('MMM d').format(monthStart)} - ${DateFormat('MMM d').format(end)}';
-        } else if (end.month != now.month) {
-          final lastDayOfMonth = nextMonth.subtract(const Duration(days: 1));
-          dateRange =
-              '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d').format(lastDayOfMonth)}';
-        } else {
-          dateRange =
-              '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d').format(end)}';
-        }
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              dividerColor: Colors.transparent,
-            ),
-            child: ExpansionTile(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    dateRange,
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    '\$${total.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              children: [
-                ...weekExpenses.map((expense) => ListTile(
-                      leading: Icon(_getCategoryIcon(expense.category)),
-                      title: Text(expense.name),
-                      subtitle: Text(DateFormat('MMM d').format(expense.date)),
-                      trailing: Text('\$${expense.amount.toStringAsFixed(2)}'),
-                    )),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 

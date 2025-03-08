@@ -12,8 +12,8 @@ import 'package:expense_tracker/widgets/report_notification.dart';
 // Create a provider to track the selected period
 final selectedPeriodProvider = StateProvider<String>((ref) => 'Daily');
 
-// Add this provider at the top of the file with other providers
-final selectedDateProvider = StateProvider<DateTime?>((ref) => null);
+// Update the selectedDateProvider to initialize with current date
+final selectedDateProvider = StateProvider<DateTime?>((ref) => DateTime.now());
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -61,6 +61,8 @@ class HomeScreen extends ConsumerWidget {
               onChanged: (String? newValue) {
                 if (newValue != null) {
                   ref.read(selectedPeriodProvider.notifier).state = newValue;
+                  ref.read(selectedDateProvider.notifier).state =
+                      DateTime.now();
                 }
               },
               items: <String>['Daily', 'Weekly', 'Monthly']
