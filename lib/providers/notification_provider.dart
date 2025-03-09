@@ -72,7 +72,6 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 
   void _checkReports() {
-    final now = DateTime.now();
     final hasWeeklyReport = _isWeeklyReportDue(state.lastNotificationDate);
     final hasMonthlyReport = _isMonthlyReportDue(state.lastNotificationDate);
 
