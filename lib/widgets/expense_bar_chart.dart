@@ -22,22 +22,6 @@ class ExpenseBarChart extends ConsumerWidget {
     return DateFormat('E').format(date);
   }
 
-  bool _isCurrentPeriod(DateTime date, String selectedPeriod) {
-    final now = DateTime.now();
-    switch (selectedPeriod) {
-      case 'Daily':
-        return ExpenseCalculations.isSameDay(date, now);
-      case 'Weekly':
-        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        final dateStartOfWeek = date.subtract(Duration(days: date.weekday - 1));
-        return dateStartOfWeek.isAtSameMomentAs(startOfWeek);
-      case 'Monthly':
-        return date.month == now.month && date.year == now.year;
-      default:
-        return false;
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expenses = ref.watch(expenseProvider);
@@ -84,18 +68,19 @@ class ExpenseBarChart extends ConsumerWidget {
               label = '';
           }
 
-          // Check if this bar is selected
-          final isSelected = selectedDate == null
-              ? _isCurrentPeriod(date, selectedPeriod)
-              : ExpenseCalculations.isSamePeriod(
+          // Check if this bar is selected - only use selectedDate
+          final isSelected = selectedDate != null &&
+              ExpenseCalculations.isSamePeriod(
                   date, selectedDate, selectedPeriod);
 
           return Expanded(
             child: GestureDetector(
               onTap: () {
                 if (isSelected) {
+                  // If the bar is already selected, deselect it
                   ref.read(selectedDateProvider.notifier).state = null;
                 } else {
+                  // If the bar is not selected, select it
                   ref.read(selectedDateProvider.notifier).state = date;
                 }
               },

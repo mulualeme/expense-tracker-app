@@ -240,4 +240,10 @@ class ExpenseCalculations {
         return false;
     }
   }
+
+  static DateTime getStartOfWeek(DateTime date) {
+    // Get the start of the week (Monday)
+    final weekStart = date.subtract(Duration(days: date.weekday - 1));
+    return DateTime(weekStart.year, weekStart.month, weekStart.day);
+  }
 }

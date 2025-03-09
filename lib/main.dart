@@ -4,7 +4,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:expense_tracker/screens/home_screen.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:expense_tracker/screens/settings_screen.dart';
-import 'package:flutter/services.dart';
 
 // Create a provider to track theme changes
 final themeProvider = StateProvider<ThemeMode>((ref) {
@@ -30,8 +29,8 @@ void main() async {
   await Hive.openBox('settings');
 
   runApp(
-    ProviderScope(
-      child: const MyApp(),
+    const ProviderScope(
+      child: MyApp(),
     ),
   );
 }

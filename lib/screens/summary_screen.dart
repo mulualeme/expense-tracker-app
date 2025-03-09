@@ -285,7 +285,6 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
   Widget _buildMonthlyReport(List<Expense> expenses, bool isDarkMode) {
     // Get current month's info
     final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
     final nextMonth = DateTime(now.year, now.month + 1, 1);
     final lastDayOfMonth = nextMonth.subtract(const Duration(days: 1));
 
