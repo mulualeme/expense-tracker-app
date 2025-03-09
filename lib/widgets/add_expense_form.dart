@@ -160,14 +160,15 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
                       _amountController,
                       isDarkMode,
                       (value) {
-                        if (value?.isEmpty ?? true)
+                        if (value?.isEmpty ?? true) {
                           return 'Please enter an amount';
+                        }
                         if (double.tryParse(value!) == null) {
                           return 'Please enter a valid number';
                         }
                         return null;
                       },
-                      prefixText: '\$ ',
+                      prefixText: 'Br ',
                     ),
                     const SizedBox(height: 20),
                     DropdownButtonFormField<Category>(
@@ -186,8 +187,9 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        if (value != null)
+                        if (value != null) {
                           setState(() => _selectedCategory = value);
+                        }
                       },
                     ),
                     const SizedBox(height: 20),

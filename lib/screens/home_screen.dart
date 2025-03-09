@@ -190,7 +190,7 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '\$${totalSpent.toStringAsFixed(2)}',
+                      'Br ${totalSpent.toStringAsFixed(2)}',
                       style:
                           Theme.of(context).textTheme.headlineLarge?.copyWith(
                                 fontWeight: FontWeight.bold,

@@ -115,7 +115,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                 _buildInsightCard(
                   context,
                   'Highest Spending Category',
-                  '${highestCategory.name} (\$${highestAmount.toStringAsFixed(2)})',
+                  '${highestCategory.name} (Br ${highestAmount.toStringAsFixed(2)})',
                   _getCategoryIcon(highestCategory),
                   isDarkMode,
                 ),
@@ -124,7 +124,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                 _buildInsightCard(
                   context,
                   'Highest Spending Day',
-                  '${DateFormat.yMMMd().format(highestSpendingDay)} (\$${highestDailyAmount.toStringAsFixed(2)})',
+                  '${DateFormat.yMMMd().format(highestSpendingDay)} (Br ${highestDailyAmount.toStringAsFixed(2)})',
                   Icons.calendar_today,
                   isDarkMode,
                 ),
@@ -132,7 +132,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
               _buildInsightCard(
                 context,
                 'Average Daily Spending',
-                '\$${averageDailySpending.toStringAsFixed(2)}',
+                'Br ${averageDailySpending.toStringAsFixed(2)}',
                 Icons.show_chart,
                 isDarkMode,
               ),
@@ -259,7 +259,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                     ),
                   ),
                   Text(
-                    '\$${total.toStringAsFixed(2)}',
+                    'Br ${total.toStringAsFixed(2)}',
                     style: TextStyle(
                       color: isDarkMode ? Colors.white : Colors.black87,
                       fontWeight: FontWeight.bold,
@@ -272,7 +272,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                         leading: Icon(_getCategoryIcon(expense.category)),
                         title: Text(expense.name),
                         trailing:
-                            Text('\$${expense.amount.toStringAsFixed(2)}'),
+                            Text('Br ${expense.amount.toStringAsFixed(2)}'),
                       ))
                   .toList(),
             ),
@@ -349,7 +349,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                       ),
                     ),
                     Text(
-                      '\$${total.toStringAsFixed(2)}',
+                      'Br ${total.toStringAsFixed(2)}',
                       style: TextStyle(
                         color: isDarkMode ? Colors.white : Colors.black87,
                         fontWeight: FontWeight.bold,
@@ -370,7 +370,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                           subtitle:
                               Text(DateFormat('MMM d').format(expense.date)),
                           trailing:
-                              Text('\$${expense.amount.toStringAsFixed(2)}'),
+                              Text('Br ${expense.amount.toStringAsFixed(2)}'),
                         )),
                 ],
               ),
@@ -496,7 +496,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                 ),
               ),
               Text(
-                '\$${amount.toStringAsFixed(2)}',
+                'Br ${amount.toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -569,7 +569,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                   ),
                 ),
                 Text(
-                  '\$${amount.toStringAsFixed(2)}',
+                  'Br ${amount.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

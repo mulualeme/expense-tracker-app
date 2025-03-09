@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:expense_tracker/screens/home_screen.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:expense_tracker/screens/settings_screen.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // Create a provider to track theme changes
 final themeProvider = StateProvider<ThemeMode>((ref) {
@@ -18,6 +19,8 @@ final themeProvider = StateProvider<ThemeMode>((ref) {
 });
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   await Hive.initFlutter();
 
   // Register adapters
@@ -27,6 +30,27 @@ void main() async {
   // Open boxes
   await Hive.openBox<Expense>('expenses');
   await Hive.openBox('settings');
+
+  // Initialize notifications
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  // Initialize notification settings
+  const initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initializationSettingsIOS = DarwinInitializationSettings();
+  const initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsIOS,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  // Request notification permissions
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.requestNotificationsPermission();
 
   runApp(
     const ProviderScope(

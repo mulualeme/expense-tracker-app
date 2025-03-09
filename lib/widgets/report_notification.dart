@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/screens/summary_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'dart:io';
 
 class ReportNotification extends ConsumerStatefulWidget {
   const ReportNotification({super.key});
@@ -13,9 +12,9 @@ class ReportNotification extends ConsumerStatefulWidget {
 }
 
 class _ReportNotificationState extends ConsumerState<ReportNotification> {
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
-  bool _notificationsInitialized = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
@@ -24,111 +23,67 @@ class _ReportNotificationState extends ConsumerState<ReportNotification> {
   }
 
   Future<void> _initializeNotifications() async {
-    try {
-      // Initialize Android settings
-      const androidInitialize =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
-      const iOSInitialize = DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await _notifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _handleNotificationTap,
+    );
+
+    setState(() => _isInitialized = true);
+  }
+
+  void _handleNotificationTap(NotificationResponse details) {
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const SummaryScreen()),
       );
-
-      const initializationSettings = InitializationSettings(
-        android: androidInitialize,
-        iOS: iOSInitialize,
-      );
-
-      // Initialize plugin
-      await flutterLocalNotificationsPlugin.initialize(
-        initializationSettings,
-        onDidReceiveNotificationResponse: (details) {
-          if (context.mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const SummaryScreen(),
-              ),
-            );
-          }
-        },
-      );
-
-      // Request permissions
-      if (Platform.isAndroid) {
-        final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-            flutterLocalNotificationsPlugin
-                .resolvePlatformSpecificImplementation<
-                    AndroidFlutterLocalNotificationsPlugin>();
-
-        final bool? granted =
-            await androidImplementation?.requestNotificationsPermission();
-        setState(() {
-          _notificationsInitialized = granted ?? false;
-        });
-      } else if (Platform.isIOS) {
-        // For iOS, permissions are requested during initialization
-        setState(() {
-          _notificationsInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error initializing notifications: $e');
-      setState(() {
-        _notificationsInitialized = false;
-      });
     }
   }
 
   Future<void> _showNotification(String title, String body) async {
-    if (!_notificationsInitialized) {
-      debugPrint('Notifications not initialized or permission denied');
-      return;
-    }
+    if (!_isInitialized) return;
 
-    try {
-      const androidDetails = AndroidNotificationDetails(
-        'expense_reports',
-        'Expense Reports',
-        channelDescription: 'Notifications for expense reports',
-        importance: Importance.max,
-        priority: Priority.high,
-        showWhen: true,
-      );
+    const androidDetails = AndroidNotificationDetails(
+      'expense_reports',
+      'Expense Reports',
+      channelDescription: 'Notifications for expense reports',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
 
-      const iOSDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      );
+    const iosDetails = DarwinNotificationDetails();
 
-      const notificationDetails = NotificationDetails(
-        android: androidDetails,
-        iOS: iOSDetails,
-      );
+    const notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
 
-      await flutterLocalNotificationsPlugin.show(
-        0,
-        title,
-        body,
-        notificationDetails,
-      );
-    } catch (e) {
-      debugPrint('Error showing notification: $e');
-    }
+    await _notifications.show(0, title, body, notificationDetails);
   }
 
   @override
   Widget build(BuildContext context) {
+    final notificationState = ref.watch(notificationProvider);
     final notifier = ref.read(notificationProvider.notifier);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    if (notifier.shouldShowWeeklyNotification() ||
-        notifier.shouldShowMonthlyNotification()) {
-      final isMonthly = notifier.shouldShowMonthlyNotification();
-
+    if (notifier.hasUnreadNotifications()) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        // Show system notification
+        final isMonthly = notificationState.hasUnreadMonthlyReport;
+
         await _showNotification(
           'Report Ready!',
           isMonthly
@@ -137,7 +92,6 @@ class _ReportNotificationState extends ConsumerState<ReportNotification> {
         );
 
         if (context.mounted) {
-          // Show in-app dialog
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -159,9 +113,7 @@ class _ReportNotificationState extends ConsumerState<ReportNotification> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: () => Navigator.pop(context),
                   child: const Text('Later'),
                 ),
                 ElevatedButton(

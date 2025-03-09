@@ -53,7 +53,7 @@ class ExpenseList extends ConsumerWidget {
     if (sortedExpenses.isEmpty) {
       return Center(
         child: Text(
-          'No expenses yet',
+          'No expenses',
           style: TextStyle(
             color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
           ),
@@ -171,7 +171,7 @@ class ExpenseList extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    '\$${expense.amount.toStringAsFixed(2)}',
+                    'Br ${expense.amount.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
