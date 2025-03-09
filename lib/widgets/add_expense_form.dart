@@ -6,11 +6,7 @@ import 'package:expense_tracker/providers/expense_provider.dart';
 
 class AddExpenseForm extends ConsumerStatefulWidget {
   final Expense? expenseToEdit;
-
-  const AddExpenseForm({
-    super.key,
-    this.expenseToEdit,
-  });
+  const AddExpenseForm({super.key, this.expenseToEdit});
 
   @override
   ConsumerState<AddExpenseForm> createState() => _AddExpenseFormState();
@@ -20,17 +16,25 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
-  Category _selectedCategory = Category.food;
-  DateTime _selectedDate = DateTime.now();
+  late Category _selectedCategory;
+  late DateTime _selectedDate;
+
+  static const Map<Category, IconData> categoryIcons = {
+    Category.food: Icons.restaurant,
+    Category.transport: Icons.directions_car,
+    Category.entertainment: Icons.movie,
+    Category.bills: Icons.receipt,
+    Category.other: Icons.more_horiz,
+  };
 
   @override
   void initState() {
     super.initState();
+    _selectedCategory = widget.expenseToEdit?.category ?? Category.food;
+    _selectedDate = widget.expenseToEdit?.date ?? DateTime.now();
     if (widget.expenseToEdit != null) {
       _nameController.text = widget.expenseToEdit!.name;
       _amountController.text = widget.expenseToEdit!.amount.toString();
-      _selectedCategory = widget.expenseToEdit!.category;
-      _selectedDate = widget.expenseToEdit!.date;
     }
   }
 
@@ -43,30 +47,69 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
-      final name = _nameController.text;
-      final amount = double.parse(_amountController.text);
+      final expense = Expense(
+        id: widget.expenseToEdit?.id ?? DateTime.now().toString(),
+        name: _nameController.text,
+        amount: double.parse(_amountController.text),
+        date: _selectedDate,
+        category: _selectedCategory,
+      );
 
-      if (widget.expenseToEdit != null) {
-        final updatedExpense = Expense(
-          id: widget.expenseToEdit!.id,
-          name: name,
-          amount: amount,
-          date: _selectedDate,
-          category: _selectedCategory,
-        );
-        ref.read(expenseProvider.notifier).updateExpense(updatedExpense);
-      } else {
-        final expense = Expense(
-          id: DateTime.now().toString(),
-          name: name,
-          amount: amount,
-          date: _selectedDate,
-          category: _selectedCategory,
-        );
-        ref.read(expenseProvider.notifier).addExpense(expense);
-      }
+      final notifier = ref.read(expenseProvider.notifier);
+      widget.expenseToEdit != null
+          ? notifier.updateExpense(expense)
+          : notifier.addExpense(expense);
 
       Navigator.of(context).pop();
+    }
+  }
+
+  InputDecoration _buildInputDecoration(String label, bool isDarkMode) {
+    return InputDecoration(
+      labelText: label,
+      border: _buildBorder(isDarkMode),
+      enabledBorder: _buildBorder(isDarkMode),
+      focusedBorder: _buildBorder(isDarkMode, focused: true),
+    );
+  }
+
+  OutlineInputBorder _buildBorder(bool isDarkMode, {bool focused = false}) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(
+        color: focused
+            ? isDarkMode
+                ? Colors.white
+                : Colors.black
+            : isDarkMode
+                ? Colors.grey.shade800
+                : Colors.grey.shade300,
+      ),
+    );
+  }
+
+  Widget _buildFormField(String label, TextEditingController controller,
+      bool isDarkMode, String? Function(String?) validator,
+      {String? prefixText}) {
+    return TextFormField(
+      controller: controller,
+      decoration: _buildInputDecoration(label, isDarkMode).copyWith(
+        prefixText: prefixText,
+      ),
+      validator: validator,
+      keyboardType: prefixText != null ? TextInputType.number : null,
+    );
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (date != null) {
+      setState(() => _selectedDate = date);
     }
   }
 
@@ -76,7 +119,6 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
 
     return Column(
       children: [
-        // Drag handle
         Container(
           width: 40,
           height: 5,
@@ -99,117 +141,44 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
                       widget.expenseToEdit != null
                           ? 'Edit Expense'
                           : 'New Expense',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 32),
-                    // Name field
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Name',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a name';
-                        }
-                        return null;
-                      },
+                    _buildFormField(
+                      'Name',
+                      _nameController,
+                      isDarkMode,
+                      (value) =>
+                          value?.isEmpty ?? true ? 'Please enter a name' : null,
                     ),
                     const SizedBox(height: 20),
-                    // Amount field
-                    TextFormField(
-                      controller: _amountController,
-                      decoration: InputDecoration(
-                        labelText: 'Amount',
-                        prefixText: '\$ ',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
+                    _buildFormField(
+                      'Amount',
+                      _amountController,
+                      isDarkMode,
+                      (value) {
+                        if (value?.isEmpty ?? true)
                           return 'Please enter an amount';
-                        }
-                        if (double.tryParse(value) == null) {
+                        if (double.tryParse(value!) == null) {
                           return 'Please enter a valid number';
                         }
                         return null;
                       },
+                      prefixText: '\$ ',
                     ),
                     const SizedBox(height: 20),
-                    // Category dropdown
                     DropdownButtonFormField<Category>(
                       value: _selectedCategory,
-                      decoration: InputDecoration(
-                        labelText: 'Category',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                      ),
+                      decoration: _buildInputDecoration('Category', isDarkMode),
                       items: Category.values.map((category) {
                         return DropdownMenuItem(
                           value: category,
                           child: Row(
                             children: [
-                              Icon(_getCategoryIcon(category)),
+                              Icon(categoryIcons[category]),
                               const SizedBox(width: 10),
                               Text(category.name.toUpperCase()),
                             ],
@@ -217,29 +186,13 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedCategory = value;
-                          });
-                        }
+                        if (value != null)
+                          setState(() => _selectedCategory = value);
                       },
                     ),
                     const SizedBox(height: 20),
-                    // Date picker
                     InkWell(
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now(),
-                        );
-                        if (date != null) {
-                          setState(() {
-                            _selectedDate = date;
-                          });
-                        }
-                      },
+                      onTap: () => _selectDate(context),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -269,7 +222,6 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
                       ),
                     ),
                     const SizedBox(height: 40),
-                    // Submit button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -303,20 +255,5 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
         ),
       ],
     );
-  }
-
-  IconData _getCategoryIcon(Category category) {
-    switch (category) {
-      case Category.food:
-        return Icons.restaurant;
-      case Category.transport:
-        return Icons.directions_car;
-      case Category.entertainment:
-        return Icons.movie;
-      case Category.bills:
-        return Icons.receipt;
-      case Category.other:
-        return Icons.more_horiz;
-    }
   }
 }
